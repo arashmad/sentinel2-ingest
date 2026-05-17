@@ -4,7 +4,9 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from sentinel2_ingest.aoi import validate_single_polygon_aoi
 
 
 class InspectionRequest(BaseModel):
@@ -26,11 +28,17 @@ class InspectionRequest(BaseModel):
     thumbnail: bool = True
     output_dir: Path | None = None
 
+    @field_validator("aoi")
+    @classmethod
+    def validate_aoi(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return validate_single_polygon_aoi(value)
+
     @model_validator(mode="after")
     def validate_date_range(self) -> InspectionRequest:
         if self.date_from > self.date_to:
             raise ValueError("date_from must be before or equal to date_to")
         return self
+
 
 
 class DownloadRequest(BaseModel):
@@ -43,6 +51,11 @@ class DownloadRequest(BaseModel):
     bands: list[str] = Field(min_length=1)
     resolution: int = Field(default=10, gt=0)
     output_dir: Path
+
+    @field_validator("aoi")
+    @classmethod
+    def validate_aoi(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return validate_single_polygon_aoi(value)
 
     @model_validator(mode="after")
     def validate_bands(self) -> DownloadRequest:
