@@ -1,0 +1,30 @@
+[project]
+name = "sentinel2-ingest"
+version = "0.1.0"
+description = "Reusable Python package for inspecting and downloading Sentinel-2 imagery."
+readme = "README.md"
+authors = [
+    { name = "arashmad", email = "arashmad.dev@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
