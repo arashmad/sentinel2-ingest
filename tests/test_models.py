@@ -15,10 +15,38 @@ from sentinel2_ingest.models import (
     QualityStatus,
 )
 
+VALID_POLYGON = {
+    "type": "Polygon",
+    "coordinates": [
+        [
+            [13.0, 52.0],
+            [13.1, 52.0],
+            [13.1, 52.1],
+            [13.0, 52.1],
+            [13.0, 52.0],
+        ]
+    ],
+}
+
+VALID_MULTIPOLYGON = {
+    "type": "MultiPolygon",
+    "coordinates": [
+        [
+            [
+                [13.0, 52.0],
+                [13.1, 52.0],
+                [13.1, 52.1],
+                [13.0, 52.1],
+                [13.0, 52.0],
+            ]
+        ]
+    ],
+}
+
 
 def test_inspection_request_accepts_valid_date_range() -> None:
     request = InspectionRequest(
-        aoi={"type": "Polygon", "coordinates": []},
+        aoi=VALID_POLYGON,
         date_from=date(2025, 6, 1),
         date_to=date(2025, 6, 30),
     )
@@ -30,7 +58,7 @@ def test_inspection_request_accepts_valid_date_range() -> None:
 def test_inspection_request_rejects_invalid_date_range() -> None:
     with pytest.raises(ValidationError, match="date_from must be before or equal to date_to"):
         InspectionRequest(
-            aoi={"type": "Polygon", "coordinates": []},
+            aoi=VALID_POLYGON,
             date_from=date(2025, 6, 30),
             date_to=date(2025, 6, 1),
         )
@@ -39,10 +67,19 @@ def test_inspection_request_rejects_invalid_date_range() -> None:
 def test_inspection_request_rejects_invalid_thresholds() -> None:
     with pytest.raises(ValidationError):
         InspectionRequest(
-            aoi={"type": "Polygon", "coordinates": []},
+            aoi=VALID_POLYGON,
             date_from=date(2025, 6, 1),
             date_to=date(2025, 6, 30),
             min_usable_pixel_ratio=1.5,
+        )
+
+
+def test_inspection_request_rejects_multipolygon_aoi() -> None:
+    with pytest.raises(ValidationError, match="Polygon"):
+        InspectionRequest(
+            aoi=VALID_MULTIPOLYGON,
+            date_from=date(2025, 6, 1),
+            date_to=date(2025, 6, 30),
         )
 
 
@@ -84,7 +121,7 @@ def test_download_request_rejects_duplicate_bands() -> None:
     with pytest.raises(ValidationError, match="bands must not contain duplicates"):
         DownloadRequest(
             scene_id="scene-1",
-            aoi={"type": "Polygon", "coordinates": []},
+            aoi=VALID_POLYGON,
             bands=["B02", "b02"],
             resolution=10,
             output_dir=Path("data/downloads"),
