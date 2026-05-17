@@ -14,3 +14,7 @@ inspect Sentinel-2 candidate scenes
 → download selected raw bands as a multiband GeoTIFF
 → save metadata
 ```
+
+## Project plan
+
+See [docs/project-plan.md](docs/project-plan.md) for the full planning document, including scope, architecture, v1 boundaries, and implementation phases.
