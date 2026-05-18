@@ -1,3 +1,5 @@
+
+from sentinel2_ingest.client import Sentinel2IngestClient
 from sentinel2_ingest.models import (
     AoiQualityMetrics,
     CandidateScene,
@@ -7,6 +9,7 @@ from sentinel2_ingest.models import (
     InspectionResult,
     QualityStatus,
 )
+from sentinel2_ingest.providers import FakeSceneProvider
 
 
 def hello() -> str:
@@ -14,8 +17,10 @@ def hello() -> str:
 
 
 __all__ = [
+    "Sentinel2IngestClient",
     "AoiQualityMetrics",
     "CandidateScene",
+    "FakeSceneProvider",
     "DownloadRequest",
     "DownloadResult",
     "InspectionRequest",
