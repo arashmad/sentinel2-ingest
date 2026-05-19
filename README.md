@@ -1,5 +1,7 @@
 # Sentinel2 Ingest
 
+[![CI](https://github.com/arashmad/sentinel2-ingest/actions/workflows/ci.yml/badge.svg)](https://github.com/arashmad/sentinel2-ingest/actions/workflows/ci.yml)
+
 Reusable Python package for inspecting and downloading Sentinel-2 imagery.
 
 The package is designed as a standalone ingestion library. It is not tied to any specific API, database schema, or downstream application.
