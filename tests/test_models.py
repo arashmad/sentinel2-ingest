@@ -28,7 +28,7 @@ VALID_POLYGON = {
     ],
 }
 
-VALID_MULTIPOLYGON = {
+MULTIPOLYGON_AOI = {
     "type": "MultiPolygon",
     "coordinates": [
         [
@@ -77,7 +77,7 @@ def test_inspection_request_rejects_invalid_thresholds() -> None:
 def test_inspection_request_rejects_multipolygon_aoi() -> None:
     with pytest.raises(ValidationError, match="Polygon"):
         InspectionRequest(
-            aoi=VALID_MULTIPOLYGON,
+            aoi=MULTIPOLYGON_AOI,
             date_from=date(2025, 6, 1),
             date_to=date(2025, 6, 30),
         )

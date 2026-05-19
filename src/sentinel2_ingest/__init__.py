@@ -1,4 +1,3 @@
-
 from sentinel2_ingest.client import Sentinel2IngestClient
 from sentinel2_ingest.models import (
     AoiQualityMetrics,
@@ -11,11 +10,6 @@ from sentinel2_ingest.models import (
 )
 from sentinel2_ingest.providers import FakeSceneProvider
 
-
-def hello() -> str:
-    return "Hello from sentinel2-ingest!"
-
-
 __all__ = [
     "Sentinel2IngestClient",
     "AoiQualityMetrics",
@@ -26,5 +20,4 @@ __all__ = [
     "InspectionRequest",
     "InspectionResult",
     "QualityStatus",
-    "hello",
 ]
