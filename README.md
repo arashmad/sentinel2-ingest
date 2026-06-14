@@ -11,11 +11,16 @@ The package is designed as a standalone ingestion library. It is not tied to any
 ```txt
 inspect Sentinel-2 candidate scenes
 → calculate AOI-level quality
+→ rank candidate scenes
 → generate thumbnails
 → select a scene
 → download selected raw bands as a multiband GeoTIFF
 → save metadata
 ```
+
+## Documentation
+
+- [Quality decisions](docs/quality-decisions.md)
 
 ## Project plan
 

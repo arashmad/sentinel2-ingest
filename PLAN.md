@@ -48,7 +48,7 @@ Current/proposed stack:
 
 ## Current project status
 
-Foundation work is complete.
+Foundation work and local inspection decision logic are complete.
 
 Completed:
 
@@ -62,6 +62,11 @@ Completed:
 | Provider boundary | Done | `SceneProvider` protocol exists |
 | Fake provider | Done | `FakeSceneProvider` supports testable inspect flow |
 | Public inspect flow | Done | `Sentinel2IngestClient.inspect()` exists |
+| Quality classification | Done | Pure `classify_quality()` returns status and reasons |
+| Fake provider quality | Done | Fake candidates use the shared quality classifier |
+| Candidate ranking | Done | Candidates are ranked by status, quality metrics, and date |
+| Best-candidate helper | Done | Explicit helper selects the best usable or allowed risky candidate |
+| Quality decision docs | Done | Thresholds, statuses, ranking, and selection are documented |
 
 Current implemented public usage:
 
@@ -79,6 +84,7 @@ result = client.inspect(
 Current important files:
 
 ```txt
+docs/quality-decisions.md
 src/sentinel2_ingest/client.py
 src/sentinel2_ingest/models/inputs.py
 src/sentinel2_ingest/models/quality.py
@@ -87,9 +93,15 @@ src/sentinel2_ingest/models/scenes.py
 src/sentinel2_ingest/aoi/validation.py
 src/sentinel2_ingest/providers/base.py
 src/sentinel2_ingest/providers/fake.py
+src/sentinel2_ingest/inspection/quality.py
+src/sentinel2_ingest/inspection/ranking.py
+src/sentinel2_ingest/inspection/selection.py
 tests/test_models.py
 tests/test_aoi_validation.py
 tests/test_client_inspection.py
+tests/test_quality.py
+tests/test_candidate_ranking.py
+tests/test_candidate_selection.py
 .github/workflows/ci.yml
 ```
 
@@ -355,15 +367,15 @@ Status: mostly complete.
 
 ### Milestone 3 — Local inspection decision logic
 
-Status: next implementation milestone.
+Status: complete.
 
 | ID | Ticket | Short description | Status |
 | --- | --- | --- | --- |
-| M3-01 | Add quality classification service | Add pure `classify_quality()` returning status and reasons. | Planned / existing TK8 |
-| M3-02 | Use classifier in fake provider | Stop hardcoding fake quality statuses. | Planned / existing TK8 |
-| M3-03 | Add candidate ranking | Sort candidates by status, usable ratio, cloud, shadow, date. | Planned / existing TK9 |
-| M3-04 | Add best-candidate helper | Add helper for choosing the first ranked usable/risky scene. | Planned |
-| M3-05 | Add quality docs | Document threshold behavior and status meanings. | Planned |
+| M3-01 | Add quality classification service | Add pure `classify_quality()` returning status and reasons. | Done |
+| M3-02 | Use classifier in fake provider | Stop hardcoding fake quality statuses. | Done |
+| M3-03 | Add candidate ranking | Sort candidates by status, usable ratio, cloud, shadow, date. | Done |
+| M3-04 | Add best-candidate helper | Add helper for choosing the first ranked usable/risky scene. | Done |
+| M3-05 | Add quality docs | Document threshold behavior and status meanings. | Done |
 
 ### Milestone 4 — Band support and request validation
 
@@ -474,19 +486,16 @@ These are not v1 work.
 
 ## Recommended implementation order
 
-1. M0-05 Move plan to root.
-2. M3-01 Add quality classification service.
-3. M3-03 Add candidate ranking.
-4. M4-01/M4-02 Add band constants and validation.
-5. M5-01/M5-02 Add provider configuration.
-6. M6-02 Implement Sentinel Hub candidate search.
-7. M7 AOI-level quality via Statistical API.
-8. M8 thumbnail generation.
-9. M9 selected-scene download.
-10. M10 storage helpers, examples, and CLI.
-11. M11 integration documentation.
-12. M12 hardening and portfolio polish.
-13. M13 later extensions only after v1 is stable.
+1. M4-01/M4-02 Add band constants and validation.
+2. M5-01/M5-02 Add provider configuration.
+3. M6-02 Implement Sentinel Hub candidate search.
+4. M7 AOI-level quality via Statistical API.
+5. M8 thumbnail generation.
+6. M9 selected-scene download.
+7. M10 storage helpers, examples, and CLI.
+8. M11 integration documentation.
+9. M12 hardening and portfolio polish.
+10. M13 later extensions only after v1 is stable.
 
 ## Architecture guardrails
 
@@ -504,6 +513,6 @@ These are not v1 work.
 
 ## First useful next step
 
-Start with **M3-01 Add quality classification service**.
+Start with **M4-01/M4-02 Add Sentinel-2 L2A band constants and download band validation**.
 
-Do not start Sentinel Hub candidate search until quality classification, candidate ranking, and band validation are stable. External provider complexity should not drive the internal domain design.
+Do not start Sentinel Hub candidate search until band validation and provider configuration are stable. External provider complexity should not drive the internal domain design.
