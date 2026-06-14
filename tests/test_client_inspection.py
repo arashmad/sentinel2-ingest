@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentinel2_ingest import FakeSceneProvider, Sentinel2IngestClient
+from sentinel2_ingest.models import QualityStatus
 
 VALID_POLYGON = {
     "type": "Polygon",
@@ -55,3 +56,31 @@ def test_client_inspect_accepts_date_objects() -> None:
     )
 
     assert len(result.candidates) == 2
+
+
+def test_fake_provider_uses_quality_classifier_defaults() -> None:
+    client = Sentinel2IngestClient(provider=FakeSceneProvider())
+
+    result = client.inspect(
+        aoi=VALID_POLYGON,
+        date_range=("2025-06-01", "2025-06-30"),
+    )
+
+    assert result.candidates[0].quality_status == QualityStatus.USABLE
+    assert result.candidates[0].quality_reasons == []
+
+    assert result.candidates[1].quality_status == QualityStatus.REJECTED
+    assert result.candidates[1].quality_reasons
+
+
+def test_fake_provider_quality_status_changes_when_thresholds_change() -> None:
+    client = Sentinel2IngestClient(provider=FakeSceneProvider())
+
+    result = client.inspect(
+        aoi=VALID_POLYGON,
+        date_range=("2025-06-01", "2025-06-30"),
+        min_usable_pixel_ratio=0.90,
+    )
+
+    assert result.candidates[0].quality_status == QualityStatus.RISKY
+    assert any("usable pixel ratio" in reason for reason in result.candidates[0].quality_reasons)
