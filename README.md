@@ -19,4 +19,4 @@ inspect Sentinel-2 candidate scenes
 
 ## Project plan
 
-See [docs/project-plan.md](docs/project-plan.md) for the full planning document, including scope, architecture, v1 boundaries, and implementation phases.
+See [PLAN.md](PLAN.md) for the full planning document, including scope, architecture guardrails, milestones, tickets, and implementation order.
