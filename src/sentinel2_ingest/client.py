@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import uuid4
 
+from sentinel2_ingest.inspection import rank_candidates
 from sentinel2_ingest.models import InspectionRequest, InspectionResult
 from sentinel2_ingest.providers import SceneProvider
 
@@ -41,7 +42,7 @@ class Sentinel2IngestClient:
             thumbnail=thumbnail,
         )
 
-        candidates = self._provider.inspect(request)
+        candidates = rank_candidates(self._provider.inspect(request))
 
         return InspectionResult(
             inspection_id=str(uuid4()),
