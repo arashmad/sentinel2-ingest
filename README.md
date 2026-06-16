@@ -21,6 +21,7 @@ inspect Sentinel-2 candidate scenes
 ## Documentation
 
 - [Quality decisions](docs/quality-decisions.md)
+- [Bands and resolution](docs/bands-and-resolution.md)
 
 ## Project plan
 
