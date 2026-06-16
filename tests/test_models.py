@@ -117,6 +117,42 @@ def test_candidate_scene_is_provider_independent() -> None:
     assert scene.quality_status == QualityStatus.USABLE
 
 
+def test_download_request_normalizes_lowercase_bands() -> None:
+    request = DownloadRequest(
+        scene_id="scene-1",
+        aoi=VALID_POLYGON,
+        bands=["b02", "b03", "b04", "b08"],
+        resolution=10,
+        output_dir=Path("data/downloads"),
+    )
+
+    assert request.bands == ("B02", "B03", "B04", "B08")
+
+
+def test_download_request_normalizes_mixed_case_bands() -> None:
+    request = DownloadRequest(
+        scene_id="scene-1",
+        aoi=VALID_POLYGON,
+        bands=["b02", "B03", "b04", "B08"],
+        resolution=10,
+        output_dir=Path("data/downloads"),
+    )
+
+    assert request.bands == ("B02", "B03", "B04", "B08")
+
+
+def test_download_request_normalizes_b8a() -> None:
+    request = DownloadRequest(
+        scene_id="scene-1",
+        aoi=VALID_POLYGON,
+        bands=["b8a"],
+        resolution=10,
+        output_dir=Path("data/downloads"),
+    )
+
+    assert request.bands == ("B8A",)
+
+
 def test_download_request_accepts_supported_bands() -> None:
     request = DownloadRequest(
         scene_id="scene-1",
@@ -126,10 +162,10 @@ def test_download_request_accepts_supported_bands() -> None:
         output_dir=Path("data/downloads"),
     )
 
-    assert request.bands == ["B02", "B03", "B04", "B08"]
+    assert request.bands == ("B02", "B03", "B04", "B08")
 
 
-def test_download_request_rejects_duplicate_bands() -> None:
+def test_download_request_rejects_duplicate_bands_after_normalization() -> None:
     with pytest.raises(ValidationError, match="bands must not contain duplicates"):
         DownloadRequest(
             scene_id="scene-1",
@@ -149,6 +185,20 @@ def test_download_request_rejects_unsupported_bands() -> None:
             scene_id="scene-1",
             aoi=VALID_POLYGON,
             bands=["B02", "B13"],
+            resolution=10,
+            output_dir=Path("data/downloads"),
+        )
+
+
+def test_download_request_rejects_unsupported_bands_after_normalization() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="unsupported Sentinel-2 L2A bands: B13",
+    ):
+        DownloadRequest(
+            scene_id="scene-1",
+            aoi=VALID_POLYGON,
+            bands=["b13"],
             resolution=10,
             output_dir=Path("data/downloads"),
         )

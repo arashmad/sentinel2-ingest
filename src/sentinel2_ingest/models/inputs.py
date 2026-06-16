@@ -48,7 +48,7 @@ class DownloadRequest(BaseModel):
 
     scene_id: str = Field(min_length=1)
     aoi: dict[str, Any]
-    bands: list[str] = Field(min_length=1)
+    bands: tuple[str, ...] = Field(min_length=1)
     resolution: int = Field(default=10, gt=0)
     output_dir: Path
 
@@ -57,14 +57,17 @@ class DownloadRequest(BaseModel):
     def validate_aoi(cls, value: dict[str, Any]) -> dict[str, Any]:
         return validate_single_polygon_aoi(value)
 
+    @field_validator("bands", mode="before")
+    @classmethod
+    def normalize_bands(cls, value: Any) -> tuple[str, ...]:
+        return tuple(str(band).upper() for band in value)
+
     @model_validator(mode="after")
     def validate_bands(self) -> DownloadRequest:
-        normalized_bands = [band.upper() for band in self.bands]
-
-        if len(set(normalized_bands)) != len(normalized_bands):
+        if len(set(self.bands)) != len(self.bands):
             raise ValueError("bands must not contain duplicates")
 
-        unsupported_bands = sorted(set(normalized_bands) - SUPPORTED_BANDS)
+        unsupported_bands = sorted(set(self.bands) - SUPPORTED_BANDS)
 
         if unsupported_bands:
             unsupported = ", ".join(unsupported_bands)
