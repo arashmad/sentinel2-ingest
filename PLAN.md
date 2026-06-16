@@ -67,6 +67,7 @@ Completed:
 | Candidate ranking | Done | Candidates are ranked by status, quality metrics, and date |
 | Best-candidate helper | Done | Explicit helper selects the best usable or allowed risky candidate |
 | Quality decision docs | Done | Thresholds, statuses, ranking, and selection are documented |
+| Band support and validation | Done | Supported bands, defaults, validation, normalization, and resolution behavior are documented |
 
 Current implemented public usage:
 
@@ -379,12 +380,14 @@ Status: complete.
 
 ### Milestone 4 — Band support and request validation
 
+Status: complete.
+
 | ID | Ticket | Short description | Status |
 | --- | --- | --- | --- |
-| M4-01 | Add Sentinel-2 L2A band constants | Define supported raw bands, defaults, thumbnail bands. | Planned / existing TK10 |
-| M4-02 | Validate download bands | Reject unsupported bands and duplicates. | Planned / existing TK10 |
-| M4-03 | Normalize band names | Normalize lowercase user input consistently. | Planned / existing TK10 |
-| M4-04 | Document resolution behavior | Explain native 10/20/60 m bands and resampling implication. | Planned |
+| M4-01 | Add Sentinel-2 L2A band constants | Define supported raw bands, defaults, thumbnail bands. | Done |
+| M4-02 | Validate download bands | Reject unsupported bands and duplicates. | Done |
+| M4-03 | Normalize band names | Normalize lowercase user input consistently. | Done |
+| M4-04 | Document resolution behavior | Explain native 10/20/60 m bands and resampling implication. | Done |
 
 ### Milestone 5 — Provider configuration
 
