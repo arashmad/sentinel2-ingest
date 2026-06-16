@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from sentinel2_ingest.aoi import validate_single_polygon_aoi
+from sentinel2_ingest.bands import SUPPORTED_BANDS
 
 
 class InspectionRequest(BaseModel):
@@ -40,7 +41,6 @@ class InspectionRequest(BaseModel):
         return self
 
 
-
 class DownloadRequest(BaseModel):
     """Request for downloading raw bands for one selected scene."""
 
@@ -63,5 +63,11 @@ class DownloadRequest(BaseModel):
 
         if len(set(normalized_bands)) != len(normalized_bands):
             raise ValueError("bands must not contain duplicates")
+
+        unsupported_bands = sorted(set(normalized_bands) - SUPPORTED_BANDS)
+
+        if unsupported_bands:
+            unsupported = ", ".join(unsupported_bands)
+            raise ValueError(f"unsupported Sentinel-2 L2A bands: {unsupported}")
 
         return self
