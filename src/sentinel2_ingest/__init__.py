@@ -1,3 +1,4 @@
+from sentinel2_ingest.bands import DEFAULT_BANDS, SUPPORTED_BANDS, THUMBNAIL_BANDS
 from sentinel2_ingest.client import Sentinel2IngestClient
 from sentinel2_ingest.models import (
     AoiQualityMetrics,
@@ -20,4 +21,7 @@ __all__ = [
     "InspectionRequest",
     "InspectionResult",
     "QualityStatus",
+    "SUPPORTED_BANDS",
+    "DEFAULT_BANDS",
+    "THUMBNAIL_BANDS",
 ]
