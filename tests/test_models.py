@@ -117,12 +117,52 @@ def test_candidate_scene_is_provider_independent() -> None:
     assert scene.quality_status == QualityStatus.USABLE
 
 
+def test_download_request_accepts_supported_bands() -> None:
+    request = DownloadRequest(
+        scene_id="scene-1",
+        aoi=VALID_POLYGON,
+        bands=["B02", "B03", "B04", "B08"],
+        resolution=10,
+        output_dir=Path("data/downloads"),
+    )
+
+    assert request.bands == ["B02", "B03", "B04", "B08"]
+
+
 def test_download_request_rejects_duplicate_bands() -> None:
     with pytest.raises(ValidationError, match="bands must not contain duplicates"):
         DownloadRequest(
             scene_id="scene-1",
             aoi=VALID_POLYGON,
             bands=["B02", "b02"],
+            resolution=10,
+            output_dir=Path("data/downloads"),
+        )
+
+
+def test_download_request_rejects_unsupported_bands() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="unsupported Sentinel-2 L2A bands: B13",
+    ):
+        DownloadRequest(
+            scene_id="scene-1",
+            aoi=VALID_POLYGON,
+            bands=["B02", "B13"],
+            resolution=10,
+            output_dir=Path("data/downloads"),
+        )
+
+
+def test_download_request_rejects_b10_for_l2a() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="unsupported Sentinel-2 L2A bands: B10",
+    ):
+        DownloadRequest(
+            scene_id="scene-1",
+            aoi=VALID_POLYGON,
+            bands=["B02", "B10"],
             resolution=10,
             output_dir=Path("data/downloads"),
         )
