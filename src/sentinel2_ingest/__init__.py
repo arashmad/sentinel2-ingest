@@ -1,5 +1,6 @@
 from sentinel2_ingest.bands import DEFAULT_BANDS, SUPPORTED_BANDS, THUMBNAIL_BANDS
 from sentinel2_ingest.client import Sentinel2IngestClient
+from sentinel2_ingest.config import SentinelHubConfig
 from sentinel2_ingest.models import (
     AoiQualityMetrics,
     CandidateScene,
@@ -12,6 +13,7 @@ from sentinel2_ingest.models import (
 from sentinel2_ingest.providers import FakeSceneProvider
 
 __all__ = [
+    "SentinelHubConfig",
     "Sentinel2IngestClient",
     "AoiQualityMetrics",
     "CandidateScene",
