@@ -23,6 +23,12 @@ inspect Sentinel-2 candidate scenes
 - [Quality decisions](docs/quality-decisions.md)
 - [Bands and resolution](docs/bands-and-resolution.md)
 
+## Configuration
+
+For local Sentinel Hub configuration, copy `.env.example` to `.env` and fill in real credentials locally.
+
+Do not commit real credentials.
+
 ## Project plan
 
 See [PLAN.md](PLAN.md) for the full planning document, including scope, architecture guardrails, milestones, tickets, and implementation order.
