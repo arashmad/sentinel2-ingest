@@ -20,8 +20,6 @@ inspect Sentinel-2 candidate scenes
 
 ## Documentation
 
-- [Project context and ownership rules](PROJECT_CONTEXT.md)
-- [Ownership task workflow](docs/ownership-workflow.md)
 - [Quality decisions](docs/quality-decisions.md)
 - [Bands and resolution](docs/bands-and-resolution.md)
 
