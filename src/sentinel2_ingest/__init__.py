@@ -10,7 +10,7 @@ from sentinel2_ingest.models import (
     InspectionResult,
     QualityStatus,
 )
-from sentinel2_ingest.providers import FakeSceneProvider
+from sentinel2_ingest.providers import FakeSceneProvider, SentinelHubProvider
 
 __all__ = [
     "SentinelHubConfig",
@@ -18,6 +18,7 @@ __all__ = [
     "AoiQualityMetrics",
     "CandidateScene",
     "FakeSceneProvider",
+    "SentinelHubProvider",
     "DownloadRequest",
     "DownloadResult",
     "InspectionRequest",
