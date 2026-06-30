@@ -1,7 +1,7 @@
 ---
 name: Ownership task
 about: Define a focused implementation task with explicit decisions and verification
-name: Ownership task
+title: "[Mx-xx] "
 labels: ""
 assignees: "arashmad"
 ---
