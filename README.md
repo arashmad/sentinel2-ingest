@@ -7,12 +7,11 @@ The package is under active development.
 
 ## Development checks
 
-Run all local quality checks with uv:
+Run all local quality checks with:
 
 ```sh
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src
-uv run pytest
+make check
 ```
 
+Use `make help` to list the available commands. Individual checks are available
+as `make lint`, `make format`, `make typecheck`, and `make test`.
