@@ -12,12 +12,27 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15",
     "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.9",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sentinel2_ingest"]
 
 [tool.pytest.ini_options]
+addopts = "--cov=sentinel2_ingest --cov-report=term-missing --cov-fail-under=90"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+files = ["src"]
+strict = true
 

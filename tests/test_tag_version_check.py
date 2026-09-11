@@ -2,7 +2,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 CHECK_SCRIPT = Path(__file__).parents[1] / "scripts" / "check_tag_version.py"
 
 
@@ -26,6 +25,4 @@ def test_version_check_rejects_mismatched_release_tag() -> None:
     result = run_version_check("v9.9.9")
 
     assert result.returncode == 1
-    assert result.stderr == (
-        "tag v9.9.9 does not match sentinel2-ingest 0.1.0\n"
-    )
+    assert result.stderr == ("tag v9.9.9 does not match sentinel2-ingest 0.1.0\n")
