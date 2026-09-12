@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Inspect and download Sentinel-2 imagery."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-dependencies = []
+dependencies = ["shapely>=2.0"]
 
 [dependency-groups]
 dev = [
@@ -16,6 +16,7 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
     "ruff>=0.9",
+    "types-shapely>=2.1",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -35,4 +36,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 files = ["src"]
 strict = true
-
