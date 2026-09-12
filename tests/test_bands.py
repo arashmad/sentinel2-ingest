@@ -68,6 +68,12 @@ def test_parse_rejects_unsupported_band(value: str) -> None:
         band_type.parse(value)
 
 
+def test_direct_enum_lookup_rejects_non_string_value() -> None:
+    """Non-string values must remain invalid direct enum inputs."""
+    with pytest.raises(ValueError):
+        sentinel2_ingest.Band(123)
+
+
 def test_validate_bands_normalizes_case_and_rejects_duplicates() -> None:
     """Duplicate requests must be rejected after normalization."""
     validate_bands = getattr(sentinel2_ingest, "validate_bands", None)
