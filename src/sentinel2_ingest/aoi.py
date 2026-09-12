@@ -18,7 +18,11 @@ def _validate_coordinate(
     if isinstance(value, bool) or not isinstance(value, Real):
         raise InvalidAOIError(f"{name} must be a finite number")
 
-    coordinate = float(value)
+    # ? Catch `OverflowError` when for too large float number (e.g. 10**400).
+    try:
+        coordinate = float(value)
+    except OverflowError as error:
+        raise InvalidAOIError(f"{name} must be a finite number") from error
 
     if not isfinite(coordinate):
         raise InvalidAOIError(f"{name} must be a finite number")

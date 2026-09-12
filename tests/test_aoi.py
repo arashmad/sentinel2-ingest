@@ -56,6 +56,7 @@ def test_normalize_bbox_accepts_wgs84_boundaries(
         (0, 0, math.inf, 1),
         ("0", 0, 1, 1),
         (True, 0, 1, 1),
+        (10**400, 0, 1, 1),
     ],
 )
 def test_normalize_bbox_rejects_invalid_bounds(
