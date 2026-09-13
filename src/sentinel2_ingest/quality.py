@@ -50,3 +50,12 @@ class QualityPolicy:
 
         object.__setattr__(self, "usable_threshold", usable)
         object.__setattr__(self, "risky_threshold", risky)
+
+    def to_dict(self) -> dict[str, float | list[int]]:
+        """Return JSON-ready policy values with deterministic SCL ordering."""
+        return {
+            "usable_threshold": self.usable_threshold,
+            "risky_threshold": self.risky_threshold,
+            "usable_scl_classes": sorted(USABLE_SCL_CLASSES),
+            "unusable_scl_classes": sorted(UNUSABLE_SCL_CLASSES),
+        }
