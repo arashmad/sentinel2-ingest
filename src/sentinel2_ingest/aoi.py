@@ -1,9 +1,10 @@
 """WGS84 area-of-interest normalization utilities."""
 
+from collections.abc import Iterable, Mapping, Sequence
 from math import isfinite
 from numbers import Real
 
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon, shape
 
 from .errors import InvalidAOIError
 
@@ -82,3 +83,72 @@ def normalize_bbox(
             (normalized_west, normalized_south),
         ]
     )
+
+
+def _validate_ring_coordinates(coordinates: Iterable[Sequence[float]]) -> None:
+    """Validate a WGS84 ring and reject antimeridian-crossing edges."""
+    ring = list(coordinates)
+    for coordinate in ring:
+        if len(coordinate) < 2:
+            raise InvalidAOIError("coordinates must contain longitude and latitude")
+        longitude, latitude = coordinate[:2]
+        if not isfinite(longitude) or not isfinite(latitude):
+            raise InvalidAOIError("coordinates must be finite WGS84 values")
+        if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+            raise InvalidAOIError("coordinates must be within WGS84 bounds")
+
+    for coordinate, next_coordinate in zip(ring, ring[1:], strict=False):
+        longitude = coordinate[0]
+        next_longitude = next_coordinate[0]
+        if abs(next_longitude - longitude) > 180:
+            raise InvalidAOIError("antimeridian-crossing polygons are unsupported")
+
+
+def _validate_polygon(polygon: Polygon) -> Polygon:
+    """Return a valid, non-empty WGS84 polygon without modifying it."""
+    if polygon.is_empty:
+        raise InvalidAOIError("polygon must not be empty")
+    if not polygon.is_valid:
+        raise InvalidAOIError("polygon must be valid")
+    if polygon.area <= 0:
+        raise InvalidAOIError("polygon must enclose positive area")
+
+    _validate_ring_coordinates(polygon.exterior.coords)
+    for interior in polygon.interiors:
+        _validate_ring_coordinates(interior.coords)
+    return polygon
+
+
+def normalize_aoi(value: object) -> Polygon:
+    """Normalize a WGS84 Polygon or singleton MultiPolygon area of interest.
+
+    GeoJSON mappings are interpreted as WGS84 coordinates. The returned Polygon
+    preserves the input's exterior and interior rings; Shapely geometries do not
+    carry CRS metadata.
+
+    Raises:
+        InvalidAOIError: If the input is not a valid, non-empty WGS84 Polygon,
+            is a MultiPolygon with other than one member, or crosses the
+            antimeridian.
+    """
+    geometry: object = value
+    if isinstance(value, Mapping):
+        try:
+            geometry = shape(dict(value))
+        except (
+            AttributeError,
+            KeyError,
+            NotImplementedError,
+            TypeError,
+            ValueError,
+        ) as error:
+            raise InvalidAOIError("must be a valid GeoJSON geometry mapping") from error
+
+    if isinstance(geometry, MultiPolygon):
+        if len(geometry.geoms) != 1:
+            raise InvalidAOIError("MultiPolygon must contain exactly one polygon")
+        geometry = geometry.geoms[0]
+
+    if not isinstance(geometry, Polygon):
+        raise InvalidAOIError("must be a Polygon or singleton MultiPolygon")
+    return _validate_polygon(geometry)
