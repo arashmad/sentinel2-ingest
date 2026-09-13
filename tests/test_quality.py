@@ -71,3 +71,12 @@ def test_quality_policy_serializes_thresholds_and_sorted_scl_classes() -> None:
         "usable_scl_classes": [2, 4, 5, 6, 7],
         "unusable_scl_classes": [0, 1, 3, 8, 9, 10, 11],
     }
+
+
+def test_quality_policy_api_is_reexported_from_package_root() -> None:
+    """Callers should use the documented package-level quality-policy API."""
+    import sentinel2_ingest
+
+    assert sentinel2_ingest.QualityPolicy is QualityPolicy
+    assert sentinel2_ingest.USABLE_SCL_CLASSES == USABLE_SCL_CLASSES
+    assert sentinel2_ingest.UNUSABLE_SCL_CLASSES == UNUSABLE_SCL_CLASSES

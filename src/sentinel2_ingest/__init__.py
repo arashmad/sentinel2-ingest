@@ -14,6 +14,11 @@ from .errors import (
     Sentinel2IngestError,
     UnacceptableCandidateError,
 )
+from .quality import (
+    UNUSABLE_SCL_CLASSES,
+    USABLE_SCL_CLASSES,
+    QualityPolicy,
+)
 
 __version__ = _resolve_version()
 
@@ -28,7 +33,10 @@ __all__ = [
     "NoCandidatesFoundError",
     "OutputError",
     "ProviderRequestError",
+    "QualityPolicy",
     "Sentinel2IngestError",
+    "UNUSABLE_SCL_CLASSES",
+    "USABLE_SCL_CLASSES",
     "UnacceptableCandidateError",
     "__version__",
     "validate_bands",

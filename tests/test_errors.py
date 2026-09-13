@@ -58,7 +58,8 @@ def test_public_errors_inherit_from_package_base(
         (
             "InvalidQualityPolicyError",
             "thresholds must satisfy 0 <= risky < usable <= 100",
-            "Invalid quality policy: thresholds must satisfy 0 <= risky < usable <= 100.",
+            "Invalid quality policy: thresholds must satisfy "
+            "0 <= risky < usable <= 100.",
         ),
         (
             "ProviderRequestError",
