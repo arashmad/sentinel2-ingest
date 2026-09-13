@@ -33,6 +33,13 @@ class InvalidResolutionError(Sentinel2IngestError):
         super().__init__(f"Invalid resolution: {details}.")
 
 
+class InvalidQualityPolicyError(Sentinel2IngestError):
+    """Raised when a scene-quality policy is invalid."""
+
+    def __init__(self, details: str) -> None:
+        super().__init__(f"Invalid quality policy: {details}.")
+
+
 class ProviderRequestError(Sentinel2IngestError):
     """Raised when a provider request fails."""
 
