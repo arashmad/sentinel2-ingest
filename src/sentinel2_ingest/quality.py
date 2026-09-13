@@ -13,8 +13,8 @@ UNUSABLE_SCL_CLASSES = frozenset({0, 1, 3, 8, 9, 10, 11})
 """SCL classes that count as unusable area."""
 
 
-def _normalize_threshold(name: str, value: object) -> float:
-    """Return a finite numeric threshold or raise the public validation error."""
+def _validate_threshold(name: str, value: object) -> Real:
+    """Return a finite real threshold or raise the public validation error."""
     if isinstance(value, bool) or not isinstance(value, Real):
         raise InvalidQualityPolicyError(f"{name} threshold must be a finite number")
 
@@ -28,7 +28,7 @@ def _normalize_threshold(name: str, value: object) -> float:
     if not isfinite(threshold):
         raise InvalidQualityPolicyError(f"{name} threshold must be a finite number")
 
-    return threshold
+    return value
 
 
 @dataclass(frozen=True)
@@ -40,8 +40,15 @@ class QualityPolicy:
 
     def __post_init__(self) -> None:
         """Normalize thresholds and enforce their strictly ordered range."""
-        usable = _normalize_threshold("usable", self.usable_threshold)
-        risky = _normalize_threshold("risky", self.risky_threshold)
+        _validate_threshold("usable", self.usable_threshold)
+        _validate_threshold("risky", self.risky_threshold)
+        if not 0 <= self.risky_threshold < self.usable_threshold <= 100:
+            raise InvalidQualityPolicyError(
+                "thresholds must satisfy 0 <= risky < usable <= 100"
+            )
+
+        usable = float(self.usable_threshold)
+        risky = float(self.risky_threshold)
 
         if not 0 <= risky < usable <= 100:
             raise InvalidQualityPolicyError(

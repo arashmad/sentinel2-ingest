@@ -1,6 +1,7 @@
 """Public quality-policy tests."""
 
 import math
+from fractions import Fraction
 
 import pytest
 
@@ -54,6 +55,26 @@ def test_quality_policy_rejects_invalid_thresholds(
     risky_threshold: object,
 ) -> None:
     """Invalid thresholds must not create policies that rank a candidate."""
+    with pytest.raises(InvalidQualityPolicyError):
+        QualityPolicy(
+            usable_threshold=usable_threshold,
+            risky_threshold=risky_threshold,
+        )
+
+
+@pytest.mark.parametrize(
+    ("usable_threshold", "risky_threshold"),
+    [
+        (80, Fraction(-1, 10**400)),
+        (Fraction(100, 1) + Fraction(1, 10**400), 50),
+        (Fraction(80, 1) + Fraction(1, 10**400), 80),
+    ],
+)
+def test_quality_policy_rejects_exact_values_that_float_rounding_would_accept(
+    usable_threshold: object,
+    risky_threshold: object,
+) -> None:
+    """Float conversion must not move an invalid threshold across a boundary."""
     with pytest.raises(InvalidQualityPolicyError):
         QualityPolicy(
             usable_threshold=usable_threshold,
