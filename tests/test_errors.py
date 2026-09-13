@@ -9,6 +9,7 @@ PUBLIC_ERROR_NAMES = (
     "InvalidDateError",
     "InvalidBandError",
     "InvalidResolutionError",
+    "InvalidQualityPolicyError",
     "ProviderRequestError",
     "NoCandidatesFoundError",
     "UnacceptableCandidateError",
@@ -53,6 +54,11 @@ def test_public_errors_inherit_from_package_base(
             "InvalidResolutionError",
             "12 m is unsupported",
             "Invalid resolution: 12 m is unsupported.",
+        ),
+        (
+            "InvalidQualityPolicyError",
+            "thresholds must satisfy 0 <= risky < usable <= 100",
+            "Invalid quality policy: thresholds must satisfy 0 <= risky < usable <= 100.",
         ),
         (
             "ProviderRequestError",
