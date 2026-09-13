@@ -3,9 +3,9 @@
 import math
 
 import pytest
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Point, Polygon
 
-from sentinel2_ingest.aoi import normalize_bbox
+from sentinel2_ingest.aoi import normalize_aoi, normalize_bbox
 from sentinel2_ingest.errors import InvalidAOIError
 
 
@@ -72,3 +72,108 @@ def test_normalize_bbox_is_not_reexported_from_package_root() -> None:
     import sentinel2_ingest
 
     assert not hasattr(sentinel2_ingest, "normalize_bbox")
+
+
+@pytest.mark.parametrize(
+    "aoi",
+    [
+        Polygon(
+            [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)],
+            [[(0.5, 0.5), (1.5, 0.5), (1.5, 1.5), (0.5, 1.5), (0.5, 0.5)]],
+        ),
+        {
+            "type": "Polygon",
+            "coordinates": [
+                [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)],
+                [(0.5, 0.5), (1.5, 0.5), (1.5, 1.5), (0.5, 1.5), (0.5, 0.5)],
+            ],
+        },
+        MultiPolygon(
+            [
+                Polygon(
+                    [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)],
+                    [[(0.5, 0.5), (1.5, 0.5), (1.5, 1.5), (0.5, 1.5), (0.5, 0.5)]],
+                )
+            ]
+        ),
+        {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [
+                    [(0, 0), (2, 0), (2, 2), (0, 2), (0, 0)],
+                    [
+                        (0.5, 0.5),
+                        (1.5, 0.5),
+                        (1.5, 1.5),
+                        (0.5, 1.5),
+                        (0.5, 0.5),
+                    ],
+                ]
+            ],
+        },
+    ],
+)
+def test_normalize_aoi_returns_wgs84_polygon_with_holes(
+    aoi: object,
+) -> None:
+    """AOI normalization must retain valid Polygon interiors across input forms."""
+    polygon = normalize_aoi(aoi)
+
+    assert isinstance(polygon, Polygon)
+    assert polygon.is_valid
+    assert polygon.area == pytest.approx(3)
+    assert len(polygon.interiors) == 1
+    assert list(polygon.interiors[0].coords) == [
+        (0.5, 0.5),
+        (1.5, 0.5),
+        (1.5, 1.5),
+        (0.5, 1.5),
+        (0.5, 0.5),
+    ]
+
+
+@pytest.mark.parametrize(
+    "aoi",
+    [
+        {"type": "Point", "coordinates": [0, 0]},
+        Point(0, 0),
+        {"type": "Polygon", "coordinates": []},
+        Polygon(),
+        Polygon([(0, 0), (2, 2), (2, 0), (0, 2), (0, 0)]),
+        MultiPolygon(
+            [
+                Polygon([(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]),
+                Polygon([(2, 0), (3, 0), (3, 1), (2, 1), (2, 0)]),
+            ]
+        ),
+        {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [[(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]],
+                [[(2, 0), (3, 0), (3, 1), (2, 1), (2, 0)]],
+            ],
+        },
+        {"type": "Polygon", "coordinates": [[(181, 0), (181, 1), (180, 1), (181, 0)]]},
+        Polygon([(170, 0), (-170, 0), (-170, 1), (170, 1), (170, 0)]),
+        Polygon(
+            [(0, 0), (4, 0), (4, 4), (0, 4), (0, 0)],
+            [[(170, 1), (-170, 1), (-170, 2), (170, 2), (170, 1)]],
+        ),
+        {"type": "Polygon", "coordinates": "not coordinates"},
+    ],
+)
+def test_normalize_aoi_rejects_unsupported_or_invalid_geometries(aoi: object) -> None:
+    """Invalid AOIs must not be repaired or passed to provider requests."""
+    with pytest.raises(InvalidAOIError):
+        normalize_aoi(aoi)
+
+
+def test_normalize_aoi_translates_coordinate_overflow_from_geojson() -> None:
+    """Oversized GeoJSON coordinates must surface as the public AOI error."""
+    aoi = {
+        "type": "Polygon",
+        "coordinates": [[(0, 0), (10**400, 0), (10**400, 1), (0, 0)]],
+    }
+
+    with pytest.raises(InvalidAOIError):
+        normalize_aoi(aoi)
