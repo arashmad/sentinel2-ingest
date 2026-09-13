@@ -166,3 +166,14 @@ def test_normalize_aoi_rejects_unsupported_or_invalid_geometries(aoi: object) ->
     """Invalid AOIs must not be repaired or passed to provider requests."""
     with pytest.raises(InvalidAOIError):
         normalize_aoi(aoi)
+
+
+def test_normalize_aoi_translates_coordinate_overflow_from_geojson() -> None:
+    """Oversized GeoJSON coordinates must surface as the public AOI error."""
+    aoi = {
+        "type": "Polygon",
+        "coordinates": [[(0, 0), (10**400, 0), (10**400, 1), (0, 0)]],
+    }
+
+    with pytest.raises(InvalidAOIError):
+        normalize_aoi(aoi)

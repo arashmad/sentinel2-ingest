@@ -174,6 +174,7 @@ def normalize_aoi(value: object) -> Polygon:
             AttributeError,
             KeyError,
             NotImplementedError,
+            OverflowError,
             TypeError,
             ValueError,
         ) as error:
