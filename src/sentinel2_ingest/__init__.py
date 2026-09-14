@@ -19,12 +19,25 @@ from .quality import (
     USABLE_SCL_CLASSES,
     QualityPolicy,
 )
+from .requests import (
+    DEFAULT_CANDIDATE_LIMIT,
+    DEFAULT_MAX_CLOUD_COVER,
+    SUPPORTED_OUTPUT_RESOLUTIONS,
+    DownloadBySceneRequest,
+    DownloadBySearchRequest,
+    InspectionRequest,
+)
 
 __version__ = _resolve_version()
 
 __all__ = [
     "Band",
     "DEFAULT_BANDS",
+    "DEFAULT_CANDIDATE_LIMIT",
+    "DEFAULT_MAX_CLOUD_COVER",
+    "DownloadBySceneRequest",
+    "DownloadBySearchRequest",
+    "InspectionRequest",
     "InvalidAOIError",
     "InvalidBandError",
     "InvalidDateError",
@@ -35,6 +48,7 @@ __all__ = [
     "ProviderRequestError",
     "QualityPolicy",
     "Sentinel2IngestError",
+    "SUPPORTED_OUTPUT_RESOLUTIONS",
     "UNUSABLE_SCL_CLASSES",
     "USABLE_SCL_CLASSES",
     "UnacceptableCandidateError",
