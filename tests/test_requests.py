@@ -154,6 +154,22 @@ def test_download_by_search_request_normalizes_output_bands_and_resolution() -> 
     }
 
 
+def test_download_by_search_request_rejects_empty_band_collections() -> None:
+    """Automatic downloads need at least one reflectance band to produce imagery."""
+    inspection = sentinel2_ingest.InspectionRequest(
+        AOI,
+        "2024-01-01",
+        "2024-01-31",
+    )
+
+    with pytest.raises(sentinel2_ingest.InvalidBandError):
+        sentinel2_ingest.DownloadBySearchRequest(
+            inspection_request=inspection,
+            output_path="output.tif",
+            bands=(),
+        )
+
+
 @pytest.mark.parametrize("resolution", (0, 12, 30, 61, True))
 def test_download_by_search_request_rejects_unsupported_resolution(
     resolution: object,
@@ -202,6 +218,17 @@ def test_download_by_scene_request_serializes_provider_neutral_scene_id() -> Non
         "resolution": 60,
         "overwrite": False,
     }
+
+
+def test_download_by_scene_request_rejects_empty_band_collections() -> None:
+    """Explicit downloads need at least one reflectance band to produce imagery."""
+    with pytest.raises(sentinel2_ingest.InvalidBandError):
+        sentinel2_ingest.DownloadBySceneRequest(
+            scene_id="S2A_MSIL2A_20240101T000000_N0509_R000_T32TMT_20240101T000000",
+            aoi=AOI,
+            output_path="scene.tif",
+            bands=(),
+        )
 
 
 @pytest.mark.parametrize("scene_id", ("", "   ", 123))

@@ -12,7 +12,12 @@ from shapely.geometry import Polygon, mapping
 
 from .aoi import normalize_aoi
 from .bands import DEFAULT_BANDS, Band, validate_bands
-from .errors import InvalidDateError, InvalidResolutionError, OutputError
+from .errors import (
+    InvalidBandError,
+    InvalidDateError,
+    InvalidResolutionError,
+    OutputError,
+)
 from .quality import QualityPolicy
 
 DEFAULT_MAX_CLOUD_COVER = 80.0
@@ -77,6 +82,14 @@ def _normalize_resolution(value: object) -> int:
     ):
         raise InvalidResolutionError("must be one of 10, 20, or 60 metres")
     return int(value)
+
+
+def _normalize_download_bands(value: tuple[Band | str, ...]) -> tuple[Band, ...]:
+    """Return requested bands, requiring a download to contain at least one."""
+    bands = validate_bands(value)
+    if not bands:
+        raise InvalidBandError("at least one band is required")
+    return bands
 
 
 def _normalize_output_path(value: object) -> Path:
@@ -175,7 +188,7 @@ class DownloadBySearchRequest:
         object.__setattr__(
             self, "output_path", _normalize_output_path(self.output_path)
         )
-        object.__setattr__(self, "bands", validate_bands(self.bands))
+        object.__setattr__(self, "bands", _normalize_download_bands(self.bands))
         object.__setattr__(self, "resolution", _normalize_resolution(self.resolution))
         object.__setattr__(
             self, "allow_risky", _normalize_bool("allow_risky", self.allow_risky)
@@ -217,7 +230,7 @@ class DownloadBySceneRequest:
         object.__setattr__(
             self, "output_path", _normalize_output_path(self.output_path)
         )
-        object.__setattr__(self, "bands", validate_bands(self.bands))
+        object.__setattr__(self, "bands", _normalize_download_bands(self.bands))
         object.__setattr__(self, "resolution", _normalize_resolution(self.resolution))
         object.__setattr__(
             self, "overwrite", _normalize_bool("overwrite", self.overwrite)
