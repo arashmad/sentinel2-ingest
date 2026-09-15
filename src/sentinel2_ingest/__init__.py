@@ -27,17 +27,28 @@ from .requests import (
     DownloadBySearchRequest,
     InspectionRequest,
 )
+from .results import (
+    AoiQualityMetrics,
+    CandidateScene,
+    DownloadResult,
+    InspectionResult,
+    SceneReference,
+)
 
 __version__ = _resolve_version()
 
 __all__ = [
     "Band",
+    "AoiQualityMetrics",
+    "CandidateScene",
     "DEFAULT_BANDS",
     "DEFAULT_CANDIDATE_LIMIT",
     "DEFAULT_MAX_CLOUD_COVER",
     "DownloadBySceneRequest",
     "DownloadBySearchRequest",
+    "DownloadResult",
     "InspectionRequest",
+    "InspectionResult",
     "InvalidAOIError",
     "InvalidBandError",
     "InvalidDateError",
@@ -47,6 +58,7 @@ __all__ = [
     "OutputError",
     "ProviderRequestError",
     "QualityPolicy",
+    "SceneReference",
     "Sentinel2IngestError",
     "SUPPORTED_OUTPUT_RESOLUTIONS",
     "UNUSABLE_SCL_CLASSES",
