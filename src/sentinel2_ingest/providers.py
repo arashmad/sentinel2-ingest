@@ -8,12 +8,17 @@ them to the package's public request and result models.
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Protocol, cast, runtime_checkable
+from math import isfinite
+from numbers import Integral, Real
+from typing import Any, Protocol, cast, runtime_checkable
 
+from pystac import Asset, Item
 from pystac_client import Client
 from shapely.geometry import Polygon
 
+from .aoi import normalize_aoi
 from .bands import Band
+from .errors import InvalidAOIError
 from .requests import InspectionRequest
 from .results import SceneReference
 
@@ -72,6 +77,101 @@ class EarthSearchClient:
             query={"eo:cloud_cover": {"lte": max_cloud_cover}},
             limit=candidate_limit,
         )
+
+
+def _raster_asset(asset: Asset | None, label: str) -> "RasterAsset":
+    """Return a STAC asset href or reject an incomplete catalog item."""
+    if asset is None or not isinstance(asset.href, str) or not asset.href.strip():
+        raise ValueError(f"Earth Search item is missing required {label} asset")
+    return RasterAsset(asset.href)
+
+
+def _asset_band_name(asset: Asset) -> str | None:
+    """Return the one STAC EO band identity carried by a reflectance asset."""
+    bands = asset.extra_fields.get("eo:bands")
+    if not isinstance(bands, list) or len(bands) != 1:
+        return None
+    band = bands[0]
+    if not isinstance(band, Mapping) or not isinstance(band.get("name"), str):
+        return None
+    return cast(str, band["name"])
+
+
+def _reflectance_asset(item: Item, band: Band) -> "RasterAsset":
+    """Resolve a reflectance asset from STAC band metadata or its common name."""
+    matching_assets = [
+        asset for asset in item.assets.values() if _asset_band_name(asset) == band.value
+    ]
+    if len(matching_assets) == 1:
+        return _raster_asset(matching_assets[0], "reflectance")
+    if len(matching_assets) > 1:
+        raise ValueError("Earth Search item has ambiguous reflectance assets")
+    return _raster_asset(item.assets.get(band.earth_search_name), "reflectance")
+
+
+def _scl_asset(item: Item) -> "RasterAsset":
+    """Resolve the SCL asset from STAC title metadata or its common name."""
+    matching_assets = [
+        asset
+        for name, asset in item.assets.items()
+        if name.lower() == "scl"
+        or (
+            isinstance(asset.title, str)
+            and "scene classification" in asset.title.lower()
+        )
+    ]
+    if len(matching_assets) != 1:
+        raise ValueError("Earth Search item is missing required SCL asset")
+    return _raster_asset(matching_assets[0], "SCL")
+
+
+def map_earth_search_item(item: Item) -> "ProviderScene":
+    """Convert one Element 84 STAC item into validated provider-neutral data."""
+    if not isinstance(item.id, str) or not item.id.strip():
+        raise ValueError("Earth Search item is missing required identity")
+    if (
+        not isinstance(item.datetime, datetime)
+        or item.datetime.tzinfo is None
+        or item.datetime.utcoffset() is None
+    ):
+        raise ValueError("Earth Search item is missing required acquisition time")
+    if item.geometry is None:
+        raise ValueError("Earth Search item is missing required footprint")
+    try:
+        footprint = normalize_aoi(item.geometry)
+    except InvalidAOIError as error:
+        raise ValueError("Earth Search item has an invalid footprint") from error
+
+    projection = item.properties.get("proj:epsg")
+    if isinstance(projection, bool) or not isinstance(projection, Integral):
+        raise ValueError("Earth Search item is missing required projection")
+    normalized_projection = int(projection)
+    if (
+        not 32601 <= normalized_projection <= 32660
+        and not 32701 <= normalized_projection <= 32760
+    ):
+        raise ValueError("Earth Search item is missing required projection")
+
+    cloud_cover = item.properties.get("eo:cloud_cover")
+    if isinstance(cloud_cover, bool) or not isinstance(cloud_cover, Real):
+        raise ValueError("Earth Search item is missing required cloud cover")
+    normalized_cloud_cover = float(cloud_cover)
+    if not isfinite(normalized_cloud_cover) or not 0 <= normalized_cloud_cover <= 100:
+        raise ValueError("Earth Search item is missing required cloud cover")
+
+    properties = cast(dict[str, Any], item.to_dict()["properties"])
+    provenance = {"collection": item.collection_id, "properties": properties}
+    reflectance_assets = {band: _reflectance_asset(item, band) for band in Band}
+    return ProviderScene(
+        reference=SceneReference(item.id, "earth-search", provenance),
+        acquisition_time=item.datetime,
+        footprint=footprint,
+        catalog_cloud_cover=normalized_cloud_cover,
+        crs=f"EPSG:{normalized_projection}",
+        scl_asset=_scl_asset(item),
+        reflectance_assets=reflectance_assets,
+        provenance=provenance,
+    )
 
 
 @dataclass(frozen=True)
