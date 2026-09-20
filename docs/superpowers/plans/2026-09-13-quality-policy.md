@@ -38,10 +38,12 @@ Add `"InvalidQualityPolicyError"` to `PUBLIC_ERROR_NAMES` and add this case to t
 
 ```python
 (
-    "InvalidQualityPolicyError",
-    "thresholds must satisfy 0 <= risky < usable <= 100",
-    "Invalid quality policy: thresholds must satisfy 0 <= risky < usable <= 100.",
-),
+    (
+        "InvalidQualityPolicyError",
+        "thresholds must satisfy 0 <= risky < usable <= 100",
+        "Invalid quality policy: thresholds must satisfy 0 <= risky < usable <= 100.",
+    ),
+)
 ```
 
 - [ ] **Step 2: Run it to verify RED**
@@ -203,8 +205,14 @@ Add imports for `math`, `pytest`, and `InvalidQualityPolicyError`, then append:
 @pytest.mark.parametrize(
     ("usable_threshold", "risky_threshold"),
     [
-        (50, 50), (49, 50), (101, 50), (80, -1),
-        (math.inf, 50), (80, math.nan), (True, 50), (80, "50"),
+        (50, 50),
+        (49, 50),
+        (101, 50),
+        (80, -1),
+        (math.inf, 50),
+        (80, math.nan),
+        (True, 50),
+        (80, "50"),
         (10**400, 50),
     ],
 )
