@@ -48,6 +48,10 @@ def test_earth_search_client_submits_the_normalized_anonymous_stac_request() -> 
         },
         "datetime": "2024-01-01T00:00:00Z/2024-01-31T23:59:59Z",
         "query": {"eo:cloud_cover": {"lte": 20.0}},
+        "sortby": [
+            {"field": "properties.datetime", "direction": "desc"},
+            {"field": "id", "direction": "asc"},
+        ],
         "limit": 3,
     }
 

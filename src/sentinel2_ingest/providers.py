@@ -5,7 +5,7 @@ translate STAC and raster-library objects at this boundary rather than exposing
 them to the package's public request and result models.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from math import isfinite
@@ -28,6 +28,12 @@ EARTH_SEARCH_URL = "https://earth-search.aws.element84.com/v1/"
 EARTH_SEARCH_COLLECTION = "sentinel-2-c1-l2a"
 """Element 84's current Sentinel-2 Collection 1 Level-2A collection."""
 
+EARTH_SEARCH_SORTBY = (
+    {"field": "properties.datetime", "direction": "desc"},
+    {"field": "id", "direction": "asc"},
+)
+"""Stable Element 84 ordering before pagination and candidate limiting."""
+
 
 class StacSearchClient(Protocol):
     """The narrow STAC client surface needed to construct catalog searches."""
@@ -40,9 +46,17 @@ class StacSearchClient(Protocol):
         intersects: dict[str, object],
         datetime: str,
         query: dict[str, dict[str, float]],
+        sortby: list[dict[str, str]],
         limit: int,
     ) -> object:
         """Submit a STAC item search and return its unprocessed response."""
+
+
+class StacItemSearch(Protocol):
+    """The paginated STAC item iterator used by the provider adapter."""
+
+    def items(self) -> Iterator[Item]:
+        """Yield STAC items across all linked result pages."""
 
 
 class EarthSearchClient:
@@ -75,8 +89,24 @@ class EarthSearchClient:
             intersects=aoi,
             datetime=(f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"),
             query={"eo:cloud_cover": {"lte": max_cloud_cover}},
+            sortby=list(EARTH_SEARCH_SORTBY),
             limit=candidate_limit,
         )
+
+    def search_scenes(self, request: InspectionRequest) -> "tuple[ProviderScene, ...]":
+        """Map paginated STAC items into unique scenes up to the requested limit."""
+        item_search = cast(StacItemSearch, self.search(request))
+        scene_ids: set[str] = set()
+        scenes: list[ProviderScene] = []
+        for item in item_search.items():
+            if item.id in scene_ids:
+                continue
+            scene = map_earth_search_item(item)
+            scene_ids.add(scene.reference.scene_id)
+            scenes.append(scene)
+            if len(scenes) == request.candidate_limit:
+                break
+        return tuple(scenes)
 
 
 def _raster_asset(asset: Asset | None, label: str) -> "RasterAsset":
