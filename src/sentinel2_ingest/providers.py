@@ -63,14 +63,17 @@ class FakeSceneProvider:
 
     def search(self, request: InspectionRequest) -> tuple[ProviderScene, ...]:
         """Return configured scenes that satisfy the request's catalog filters."""
+        aoi = cast(Polygon, request.aoi)
         start_date = cast(date, request.start_date)
         end_date = cast(date, request.end_date)
-        return tuple(
+        matching_scenes = (
             scene
             for scene in self._scenes
-            if start_date <= scene.acquisition_time.date() <= end_date
+            if scene.footprint.intersects(aoi)
+            and start_date <= scene.acquisition_time.date() <= end_date
             and scene.catalog_cloud_cover <= request.max_cloud_cover
         )
+        return tuple(matching_scenes)[: request.candidate_limit]
 
     def lookup(self, scene_id: str) -> ProviderScene:
         """Return a configured scene by ID or raise KeyError when it is absent."""
