@@ -20,9 +20,16 @@ class RecordingStacClient:
         return self.response
 
 
+class EmptyItemSearch:
+    """A local STAC search result with no items to iterate."""
+
+    def items(self) -> tuple[()]:
+        return ()
+
+
 def test_earth_search_client_submits_the_normalized_anonymous_stac_request() -> None:
     """A changed catalog filter, interval, or endpoint client request is a bug."""
-    response = object()
+    response = EmptyItemSearch()
     client = RecordingStacClient(response)
     earth_search = EarthSearchClient(client)
     request = InspectionRequest(
@@ -36,7 +43,7 @@ def test_earth_search_client_submits_the_normalized_anonymous_stac_request() -> 
         candidate_limit=3,
     )
 
-    assert earth_search.search(request) is response
+    assert tuple(earth_search.search(request).items()) == ()
     assert client.search_kwargs == {
         "method": "POST",
         "collections": ["sentinel-2-c1-l2a"],
@@ -63,7 +70,9 @@ def test_earth_search_client_opens_the_public_element84_catalog_anonymously(
     opened_urls: list[str] = []
     client = RecordingStacClient(object())
 
-    def open_client(url: str) -> RecordingStacClient:
+    def open_client(*args: object, **_: object) -> RecordingStacClient:
+        url = args[0]
+        assert isinstance(url, str)
         opened_urls.append(url)
         return client
 

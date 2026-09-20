@@ -5,20 +5,23 @@ translate STAC and raster-library objects at this boundary rather than exposing
 them to the package's public request and result models.
 """
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from math import isfinite
 from numbers import Integral, Real
-from typing import Any, Protocol, cast, runtime_checkable
+from time import sleep as default_sleep
+from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 from pystac import Asset, Item
 from pystac_client import Client
+from pystac_client.exceptions import APIError
+from pystac_client.stac_api_io import StacApiIO
 from shapely.geometry import Polygon
 
 from .aoi import normalize_aoi
 from .bands import Band
-from .errors import InvalidAOIError
+from .errors import InvalidAOIError, ProviderRequestError
 from .requests import InspectionRequest
 from .results import SceneReference
 
@@ -33,6 +36,44 @@ EARTH_SEARCH_SORTBY = (
     {"field": "id", "direction": "asc"},
 )
 """Stable Element 84 ordering before pagination and candidate limiting."""
+
+EARTH_SEARCH_CONNECT_TIMEOUT = 5.0
+"""Maximum seconds allowed to establish an Earth Search connection."""
+
+EARTH_SEARCH_READ_TIMEOUT = 30.0
+"""Maximum seconds allowed to read one Earth Search response."""
+
+EARTH_SEARCH_MAX_RETRIES = 3
+"""Maximum retry attempts after a retryable Earth Search failure."""
+
+EARTH_SEARCH_RETRY_BACKOFF = 0.25
+"""Initial retry delay in seconds; it doubles up to one second."""
+
+_RetryResult = TypeVar("_RetryResult")
+
+
+def _is_retryable_catalog_error(error: APIError) -> bool:
+    """Return whether an API failure is transient enough to retry."""
+    status_code = getattr(error, "status_code", None)
+    return status_code is None or status_code == 429 or status_code >= 500
+
+
+def _retry_catalog_call(
+    operation: Callable[[], _RetryResult],
+    sleep: Callable[[float], None],
+) -> _RetryResult:
+    """Run a catalog operation with bounded retries for transient API errors."""
+    for retry_count in range(EARTH_SEARCH_MAX_RETRIES + 1):
+        try:
+            return operation()
+        except APIError as error:
+            if (
+                not _is_retryable_catalog_error(error)
+                or retry_count == EARTH_SEARCH_MAX_RETRIES
+            ):
+                raise
+            sleep(min(EARTH_SEARCH_RETRY_BACKOFF * 2**retry_count, 1.0))
+    raise AssertionError("retry loop must return or raise")  # pragma: no cover
 
 
 class StacSearchClient(Protocol):
@@ -59,23 +100,84 @@ class StacItemSearch(Protocol):
         """Yield STAC items across all linked result pages."""
 
 
+class ProtectedStacItemSearch:
+    """A STAC item stream that defers protected retrieval until iteration."""
+
+    def __init__(self, read_items: Callable[[], Iterator[Item]]) -> None:
+        self._read_items = read_items
+
+    def items(self) -> Iterator[Item]:
+        """Yield provider-protected items as each STAC page arrives."""
+        yield from self._read_items()
+
+
 class EarthSearchClient:
-    """Anonymous Element 84 STAC request adapter.
+    """Anonymous Element 84 STAC adapter with bounded provider failures."""
 
-    This class intentionally returns the unprocessed STAC response. Item mapping,
-    pagination, and provider error handling are separate provider responsibilities.
-    """
-
-    def __init__(self, client: StacSearchClient) -> None:
+    def __init__(
+        self,
+        client: StacSearchClient,
+        sleep: Callable[[float], None] = default_sleep,
+    ) -> None:
         self.client = client
+        self._sleep = sleep
 
     @classmethod
-    def open_anonymous(cls) -> "EarthSearchClient":
-        """Open the public Element 84 catalog without credentials."""
-        return cls(Client.open(EARTH_SEARCH_URL))
+    def open_anonymous(
+        cls, sleep: Callable[[float], None] = default_sleep
+    ) -> "EarthSearchClient":
+        """Open the public Element 84 catalog with bounded transport settings."""
+        try:
+            client = _retry_catalog_call(
+                lambda: Client.open(
+                    EARTH_SEARCH_URL,
+                    stac_io=StacApiIO(
+                        timeout=(
+                            EARTH_SEARCH_CONNECT_TIMEOUT,
+                            EARTH_SEARCH_READ_TIMEOUT,
+                        ),
+                        max_retries=0,
+                    ),
+                ),
+                sleep,
+            )
+        except Exception as error:
+            raise ProviderRequestError() from error
+        return cls(client, sleep)
 
-    def search(self, request: InspectionRequest) -> object:
-        """Submit one normalized inspection request as an Element 84 item search."""
+    def search(self, request: InspectionRequest) -> StacItemSearch:
+        """Return a protected lazy stream for one normalized Earth Search request."""
+        return ProtectedStacItemSearch(lambda: self._stream_items(request))
+
+    def _stream_items(self, request: InspectionRequest) -> Iterator[Item]:
+        """Yield a bounded item stream while retrying only transient failures."""
+        yielded_ids: set[str] = set()
+        for retry_count in range(EARTH_SEARCH_MAX_RETRIES + 1):
+            try:
+                item_search = cast(StacItemSearch, self._search_once(request))
+                for item in item_search.items():
+                    if item.id in yielded_ids:
+                        continue
+                    yielded_ids.add(item.id)
+                    yield item
+                    if len(yielded_ids) == request.candidate_limit:
+                        return
+                return
+            except APIError as error:
+                if (
+                    not _is_retryable_catalog_error(error)
+                    or retry_count == EARTH_SEARCH_MAX_RETRIES
+                ):
+                    raise ProviderRequestError() from error
+                self._sleep(min(EARTH_SEARCH_RETRY_BACKOFF * 2**retry_count, 1.0))
+            except Exception as error:
+                raise ProviderRequestError() from error
+        raise AssertionError(  # pragma: no cover
+            "stream retry loop must return or raise"
+        )
+
+    def _search_once(self, request: InspectionRequest) -> object:
+        """Submit one normalized inspection request without retry handling."""
         serialized_request = request.to_dict()
         aoi = cast(dict[str, object], serialized_request["aoi"])
         start_date = cast(str, serialized_request["start_date"])
@@ -95,7 +197,22 @@ class EarthSearchClient:
 
     def search_scenes(self, request: InspectionRequest) -> "tuple[ProviderScene, ...]":
         """Map paginated STAC items into unique scenes up to the requested limit."""
-        item_search = cast(StacItemSearch, self.search(request))
+        return self._catalog_operation(lambda: self._search_scenes_once(request))
+
+    def _catalog_operation(self, operation: Callable[[], _RetryResult]) -> _RetryResult:
+        """Retry external catalog failures and map them to the public error."""
+        try:
+            return _retry_catalog_call(operation, self._sleep)
+        except ProviderRequestError:
+            raise
+        except Exception as error:
+            raise ProviderRequestError() from error
+
+    def _search_scenes_once(
+        self, request: InspectionRequest
+    ) -> "tuple[ProviderScene, ...]":
+        """Retrieve and map one complete paginated search attempt."""
+        item_search = cast(StacItemSearch, self._search_once(request))
         scene_ids: set[str] = set()
         scenes: list[ProviderScene] = []
         for item in item_search.items():
