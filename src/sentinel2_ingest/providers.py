@@ -10,11 +10,68 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol, cast, runtime_checkable
 
+from pystac_client import Client
 from shapely.geometry import Polygon
 
 from .bands import Band
 from .requests import InspectionRequest
 from .results import SceneReference
+
+EARTH_SEARCH_URL = "https://earth-search.aws.element84.com/v1/"
+"""Public, anonymous Element 84 Earth Search STAC API endpoint."""
+
+EARTH_SEARCH_COLLECTION = "sentinel-2-c1-l2a"
+"""Element 84's current Sentinel-2 Collection 1 Level-2A collection."""
+
+
+class StacSearchClient(Protocol):
+    """The narrow STAC client surface needed to construct catalog searches."""
+
+    def search(
+        self,
+        *,
+        method: str,
+        collections: list[str],
+        intersects: dict[str, object],
+        datetime: str,
+        query: dict[str, dict[str, float]],
+        limit: int,
+    ) -> object:
+        """Submit a STAC item search and return its unprocessed response."""
+
+
+class EarthSearchClient:
+    """Anonymous Element 84 STAC request adapter.
+
+    This class intentionally returns the unprocessed STAC response. Item mapping,
+    pagination, and provider error handling are separate provider responsibilities.
+    """
+
+    def __init__(self, client: StacSearchClient) -> None:
+        self.client = client
+
+    @classmethod
+    def open_anonymous(cls) -> "EarthSearchClient":
+        """Open the public Element 84 catalog without credentials."""
+        return cls(Client.open(EARTH_SEARCH_URL))
+
+    def search(self, request: InspectionRequest) -> object:
+        """Submit one normalized inspection request as an Element 84 item search."""
+        serialized_request = request.to_dict()
+        aoi = cast(dict[str, object], serialized_request["aoi"])
+        start_date = cast(str, serialized_request["start_date"])
+        end_date = cast(str, serialized_request["end_date"])
+        max_cloud_cover = cast(float, serialized_request["max_cloud_cover"])
+        candidate_limit = cast(int, serialized_request["candidate_limit"])
+
+        return self.client.search(
+            method="POST",
+            collections=[EARTH_SEARCH_COLLECTION],
+            intersects=aoi,
+            datetime=(f"{start_date}T00:00:00Z/{end_date}T23:59:59Z"),
+            query={"eo:cloud_cover": {"lte": max_cloud_cover}},
+            limit=candidate_limit,
+        )
 
 
 @dataclass(frozen=True)
