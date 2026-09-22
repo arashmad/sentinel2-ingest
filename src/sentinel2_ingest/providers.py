@@ -8,16 +8,24 @@ them to the package's public request and result models.
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
-from math import isfinite
+from math import ceil, floor, isfinite
 from numbers import Integral, Real
 from time import sleep as default_sleep
 from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
+import numpy as np
 from pystac import Asset, Item
 from pystac_client import Client
 from pystac_client.exceptions import APIError
 from pystac_client.stac_api_io import StacApiIO
-from shapely.geometry import Polygon
+from rasterio import open as open_raster
+from rasterio.enums import Resampling
+from rasterio.errors import WindowError
+from rasterio.features import bounds, geometry_mask
+from rasterio.transform import Affine
+from rasterio.warp import transform_geom
+from rasterio.windows import Window
+from shapely.geometry import Polygon, box, mapping, shape
 
 from .aoi import normalize_aoi
 from .bands import Band
@@ -326,6 +334,52 @@ class RasterAsset:
     """A provider-neutral reference to one raster asset."""
 
     href: str
+
+
+@dataclass(frozen=True)
+class SclAoiWindow:
+    """SCL pixels and spatial metadata for the part of a raster inside one AOI."""
+
+    values: np.ndarray[Any, Any]
+    transform: Affine
+    nodata: float | int | None
+    aoi_mask: np.ndarray[Any, np.dtype[np.bool_]]
+
+
+def read_scl_aoi_window(asset: RasterAsset, aoi: Polygon) -> SclAoiWindow:
+    """Read only one WGS84 AOI's categorical SCL pixels from a raster asset."""
+    normalized_aoi = normalize_aoi(aoi)
+    with open_raster(asset.href) as dataset:
+        if dataset.crs is None:
+            raise ValueError("SCL asset is missing a coordinate reference system")
+        projected_aoi = transform_geom(
+            "EPSG:4326", dataset.crs, mapping(normalized_aoi)
+        )
+        if not shape(projected_aoi).intersects(box(*dataset.bounds)):
+            raise ValueError("AOI does not intersect the SCL asset")
+        requested_window = dataset.window(*bounds(projected_aoi))
+        col_off = floor(requested_window.col_off)
+        row_off = floor(requested_window.row_off)
+        window = Window(
+            col_off,
+            row_off,
+            ceil(requested_window.col_off + requested_window.width) - col_off,
+            ceil(requested_window.row_off + requested_window.height) - row_off,
+        )
+        try:
+            window = window.intersection(Window(0, 0, dataset.width, dataset.height))
+        except WindowError as error:
+            raise ValueError("AOI does not intersect the SCL asset") from error
+        transform = dataset.window_transform(window)
+        values = dataset.read(1, window=window, resampling=Resampling.nearest)
+        aoi_mask = geometry_mask(
+            [projected_aoi],
+            out_shape=values.shape,
+            transform=transform,
+            all_touched=True,
+            invert=True,
+        )
+        return SclAoiWindow(values, transform, dataset.nodata, aoi_mask)
 
 
 @dataclass(frozen=True)
