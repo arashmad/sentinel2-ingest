@@ -25,7 +25,7 @@ from rasterio.features import bounds, geometry_mask
 from rasterio.transform import Affine
 from rasterio.warp import transform_geom
 from rasterio.windows import Window
-from shapely.geometry import Polygon, mapping
+from shapely.geometry import Polygon, box, mapping, shape
 
 from .aoi import normalize_aoi
 from .bands import Band
@@ -355,6 +355,8 @@ def read_scl_aoi_window(asset: RasterAsset, aoi: Polygon) -> SclAoiWindow:
         projected_aoi = transform_geom(
             "EPSG:4326", dataset.crs, mapping(normalized_aoi)
         )
+        if not shape(projected_aoi).intersects(box(*dataset.bounds)):
+            raise ValueError("AOI does not intersect the SCL asset")
         requested_window = dataset.window(*bounds(projected_aoi))
         col_off = floor(requested_window.col_off)
         row_off = floor(requested_window.row_off)
@@ -374,6 +376,7 @@ def read_scl_aoi_window(asset: RasterAsset, aoi: Polygon) -> SclAoiWindow:
             [projected_aoi],
             out_shape=values.shape,
             transform=transform,
+            all_touched=True,
             invert=True,
         )
         return SclAoiWindow(values, transform, dataset.nodata, aoi_mask)

@@ -67,7 +67,40 @@ def test_read_scl_aoi_window_reads_only_transformed_aoi_pixels_from_local_cog(
     assert window.values.tolist() == [[5, 6], [9, 10]]
     assert window.transform == from_origin(1000, 3000, 1000, 1000)
     assert window.nodata == 255
-    assert window.aoi_mask.tolist() == [[False, True], [True, True]]
+    assert window.aoi_mask.tolist() == [[True, True], [True, True]]
+
+
+def test_read_scl_aoi_window_rejects_a_raster_inside_an_aoi_hole(
+    tmp_path: Path,
+) -> None:
+    """Overlapping bounds alone must not count an AOI hole as a valid read."""
+    cog_path = tmp_path / "scl.tif"
+    _write_scl_cog(cog_path)
+    aoi = Polygon(
+        _wgs84_ring(
+            [
+                (-1000, -1000),
+                (5000, -1000),
+                (5000, 5000),
+                (-1000, 5000),
+                (-1000, -1000),
+            ]
+        ),
+        [
+            _wgs84_ring(
+                [
+                    (-100, -100),
+                    (4100, -100),
+                    (4100, 4100),
+                    (-100, 4100),
+                    (-100, -100),
+                ]
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="AOI does not intersect the SCL asset"):
+        providers.read_scl_aoi_window(providers.RasterAsset(str(cog_path)), aoi)
 
 
 def test_read_scl_aoi_window_includes_every_pixel_touched_by_a_subpixel_aoi(
@@ -86,6 +119,7 @@ def test_read_scl_aoi_window_includes_every_pixel_touched_by_a_subpixel_aoi(
 
     assert window.values.tolist() == [[5, 6], [9, 10]]
     assert window.transform == from_origin(1000, 3000, 1000, 1000)
+    assert window.aoi_mask.tolist() == [[True, True], [True, True]]
 
 
 def test_read_scl_aoi_window_rejects_an_aoi_outside_the_cog(tmp_path: Path) -> None:
