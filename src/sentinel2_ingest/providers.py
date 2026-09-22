@@ -18,13 +18,13 @@ from pystac import Asset, Item
 from pystac_client import Client
 from pystac_client.exceptions import APIError
 from pystac_client.stac_api_io import StacApiIO
-from rasterio import open as open_raster  # type: ignore[import-untyped]
-from rasterio.enums import Resampling  # type: ignore[import-untyped]
-from rasterio.errors import WindowError  # type: ignore[import-untyped]
-from rasterio.features import bounds, geometry_mask  # type: ignore[import-untyped]
-from rasterio.transform import Affine  # type: ignore[import-untyped]
-from rasterio.warp import transform_geom  # type: ignore[import-untyped]
-from rasterio.windows import Window  # type: ignore[import-untyped]
+from rasterio import open as open_raster
+from rasterio.enums import Resampling
+from rasterio.errors import WindowError
+from rasterio.features import bounds, geometry_mask
+from rasterio.transform import Affine
+from rasterio.warp import transform_geom
+from rasterio.windows import Window
 from shapely.geometry import Polygon, mapping
 
 from .aoi import normalize_aoi

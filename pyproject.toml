@@ -40,3 +40,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 files = ["src"]
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["rasterio", "rasterio.*"]
+ignore_missing_imports = true
